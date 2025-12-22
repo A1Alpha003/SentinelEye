@@ -1,0 +1,125 @@
+{% extends "base.html" %}
+
+{% block content %}
+<div class="container-fluid">
+    <!-- Dashboard Header -->
+    <div class="row mb-4">
+        <div class="col-12">
+            <h1 class="h3 fw-bold mb-2" style="color: var(--cyber-primary);">
+                <i class="fas fa-shield-alt me-2"></i>
+                Security Dashboard
+            </h1>
+            <p class="text-muted">Real-time monitoring and threat analysis</p>
+        </div>
+    </div>
+
+    <!-- Stats Overview -->
+    <div class="row mb-4">
+        <div class="col-xl-3 col-md-6 mb-3">
+            <div class="dashboard-card p-3">
+                <div class="d-flex align-items-center">
+                    <div class="me-3">
+                        <i class="fas fa-bell card-icon"></i>
+                    </div>
+                    <div>
+                        <h3 class="card-metric mb-1" id="totalAlerts">{{ stats.total_alerts }}</h3>
+                        <small class="text-muted">Total Alerts</small>
+                    </div>
+                </div>
+            </div>
+        </div>
+        
+        <div class="col-xl-3 col-md-6 mb-3">
+            <div class="dashboard-card danger p-3">
+                <div class="d-flex align-items-center">
+                    <div class="me-3">
+                        <i class="fas fa-exclamation-triangle card-icon"></i>
+                    </div>
+                    <div>
+                        <h3 class="card-metric mb-1" id="criticalAlerts">{{ stats.critical_alerts }}</h3>
+                        <small class="text-muted">Critical</small>
+                    </div>
+                </div>
+            </div>
+        </div>
+        
+        <div class="col-xl-3 col-md-6 mb-3">
+            <div class="dashboard-card success p-3">
+                <div class="d-flex align-items-center">
+                    <div class="me-3">
+                        <i class="fas fa-file-code card-icon"></i>
+                    </div>
+                    <div>
+                        <h3 class="card-metric mb-1" id="filesScanned">{{ stats.files_scanned }}</h3>
+                        <small class="text-muted">Files Scanned</small>
+                    </div>
+                </div>
+            </div>
+        </div>
+        
+        <div class="col-xl-3 col-md-6 mb-3">
+            <div class="dashboard-card warning p-3">
+                <div class="d-flex align-items-center">
+                    <div class="me-3">
+                        <i class="fas fa-virus card-icon"></i>
+                    </div>
+                    <div>
+                        <h3 class="card-metric mb-1" id="maliciousFiles">{{ stats.malicious_files }}</h3>
+                        <small class="text-muted">Threats</small>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Recent Alerts -->
+    <div class="row">
+        <div class="col-12">
+            <div class="dashboard-card p-3">
+                <div class="d-flex justify-content-between align-items-center mb-3">
+                    <h6 class="fw-bold mb-0" style="color: var(--cyber-primary);">
+                        <i class="fas fa-history me-2"></i>
+                        Recent Activity
+                    </h6>
+                    <button class="btn btn-sm btn-cyber-outline" onclick="refreshAlerts()">
+                        <i class="fas fa-sync-alt"></i>
+                    </button>
+                </div>
+                
+                <div class="table-responsive">
+                    <table class="table table-cyber mb-0">
+                        <thead>
+                            <tr>
+                                <th>Time</th>
+                                <th>Type</th>
+                                <th>Description</th>
+                                <th>Source</th>
+                                <th>Status</th>
+                            </tr>
+                        </thead>
+                        <tbody id="alertsTable">
+                            {% for alert in alerts %}
+                            <tr>
+                                <td><small class="text-muted">{{ alert.timestamp }}</small></td>
+                                <td><span class="badge-cyber">{{ alert.type }}</span></td>
+                                <td>{{ alert.description[:50] }}{% if alert.description|length > 50 %}...{% endif %}</td>
+                                <td><code>{{ alert.source }}</code></td>
+                                <td>
+                                    {% if alert.severity == 'critical' %}
+                                    <span class="badge-cyber-danger">Critical</span>
+                                    {% elif alert.severity == 'warning' %}
+                                    <span class="badge-cyber-warning">Warning</span>
+                                    {% else %}
+                                    <span class="badge-cyber-success">Info</span>
+                                    {% endif %}
+                                </td>
+                            </tr>
+                            {% endfor %}
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

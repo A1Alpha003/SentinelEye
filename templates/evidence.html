@@ -1,0 +1,348 @@
+{% extends "base.html" %}
+
+{% block content %}
+<div class="container-fluid">
+    <div class="row mb-4">
+        <div class="col-12">
+            <h2 class="text-gradient">Evidence Locker</h2>
+            <p class="text-muted">Manage and analyze forensic evidence</p>
+        </div>
+    </div>
+
+    <!-- File Systems Information -->
+    <div class="row mb-4">
+        <div class="col-md-6">
+            <div class="dashboard-card">
+                <div class="card-header">
+                    <h5 class="card-title"><i class="fas fa-hdd me-2"></i>File Systems</h5>
+                    <button class="btn btn-sm btn-cyber" onclick="refreshFileSystems()">
+                        <i class="fas fa-sync-alt"></i>
+                    </button>
+                </div>
+                <div class="card-body">
+                    <div id="filesystemsList">
+                        {% if filesystems %}
+                            {% for fs in filesystems %}
+                            <div class="d-flex justify-content-between align-items-center mb-2 p-2 bg-dark rounded">
+                                <span>
+                                    <i class="fas fa-folder text-info me-2"></i>
+                                    <code>{{ fs }}</code>
+                                </span>
+                                <span class="badge-cyber-info">Active</span>
+                            </div>
+                            {% endfor %}
+                        {% else %}
+                            <p class="text-muted">No file systems detected</p>
+                        {% endif %}
+                    </div>
+                </div>
+            </div>
+        </div>
+        
+        <div class="col-md-6">
+            <div class="dashboard-card">
+                <div class="card-header">
+                    <h5 class="card-title"><i class="fas fa-history me-2"></i>Recent Forensic Scans</h5>
+                </div>
+                <div class="card-body">
+                    <div class="table-responsive">
+                        <table class="table table-sm table-cyber">
+                            <thead>
+                                <tr>
+                                    <th>Scan Type</th>
+                                    <th>Date</th>
+                                    <th>Findings</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                {% for scan in system_scans %}
+                                <tr>
+                                    <td>{{ scan.type }}</td>
+                                    <td>{{ scan.timestamp.split(' ')[0] }}</td>
+                                    <td>
+                                        {% if scan.findings %}
+                                            {{ scan.findings|length }} items
+                                        {% else %}
+                                            0 items
+                                        {% endif %}
+                                    </td>
+                                </tr>
+                                {% endfor %}
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Forensic Tools -->
+    <div class="row">
+        <div class="col-12">
+            <div class="dashboard-card">
+                <div class="card-header">
+                    <h5 class="card-title"><i class="fas fa-tools me-2"></i>Forensic Analysis Tools</h5>
+                </div>
+                <div class="card-body">
+                    <div class="row g-3 mb-4">
+                        <div class="col-md-3">
+                            <button class="btn btn-cyber w-100" onclick="recoverDeletedFiles()">
+                                <i class="fas fa-trash-restore me-2"></i>Deleted Files
+                            </button>
+                        </div>
+                        <div class="col-md-3">
+                            <button class="btn btn-cyber-outline w-100" onclick="scanSystemNow()">
+                                <i class="fas fa-search me-2"></i>System Scan
+                            </button>
+                        </div>
+                        <div class="col-md-3">
+                            <button class="btn btn-cyber-outline w-100" onclick="checkMetadata()">
+                                <i class="fas fa-info-circle me-2"></i>Metadata
+                            </button>
+                        </div>
+                        <div class="col-md-3">
+                            <button class="btn btn-cyber-outline w-100" onclick="exportEvidence()">
+                                <i class="fas fa-download me-2"></i>Export
+                            </button>
+                        </div>
+                    </div>
+                    
+                    <div class="mt-4">
+                        <h6><i class="fas fa-file-alt me-2"></i>Analysis Results</h6>
+                        <div id="evidenceResults" class="d-none mt-3">
+                            <div class="d-flex justify-content-between align-items-center mb-2">
+                                <span class="text-muted">Analysis Output:</span>
+                                <button class="btn btn-sm btn-cyber-outline" onclick="clearResults()">
+                                    <i class="fas fa-times"></i> Clear
+                                </button>
+                            </div>
+                            <div class="position-relative">
+                                <pre class="bg-dark text-light p-3 rounded" id="evidenceContent" style="max-height: 400px; overflow-y: auto;"></pre>
+                                <button class="btn btn-sm btn-cyber-outline position-absolute top-0 end-0 m-2" onclick="copyResults()">
+                                    <i class="fas fa-copy"></i>
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- System Scan Modal -->
+<div class="modal fade" id="systemScanModal" tabindex="-1">
+    <div class="modal-dialog modal-cyber">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title"><i class="fas fa-search me-2"></i>System Scan</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+            </div>
+            <div class="modal-body">
+                <div class="mb-3">
+                    <label class="form-label">Directory to Scan</label>
+                    <input type="text" class="form-control" id="scanDirectory" value="/home" placeholder="/home">
+                    <small class="text-muted">Enter the directory path to scan for suspicious files</small>
+                </div>
+                <div class="mb-3">
+                    <label class="form-label">File Types to Look For</label>
+                    <select class="form-control" id="fileTypes" multiple>
+                        <option value=".exe" selected>.exe</option>
+                        <option value=".bat" selected>.bat</option>
+                        <option value=".sh" selected>.sh</option>
+                        <option value=".py" selected>.py</option>
+                        <option value=".js">.js</option>
+                        <option value=".php">.php</option>
+                    </select>
+                    <small class="text-muted">Hold Ctrl to select multiple file types</small>
+                </div>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-cyber-outline" data-bs-dismiss="modal">Cancel</button>
+                <button type="button" class="btn btn-cyber" onclick="startSystemScan()">Start Scan</button>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script>
+function refreshFileSystems() {
+    fetch('/api/get-filesystems')
+    .then(response => response.json())
+    .then(data => {
+        if (data.success) {
+            const container = document.getElementById('filesystemsList');
+            container.innerHTML = '';
+            
+            data.filesystems.forEach(fs => {
+                container.innerHTML += `
+                    <div class="d-flex justify-content-between align-items-center mb-2 p-2 bg-dark rounded">
+                        <span>
+                            <i class="fas fa-folder text-info me-2"></i>
+                            <code>${fs}</code>
+                        </span>
+                        <span class="badge-cyber-info">Active</span>
+                    </div>
+                `;
+            });
+        }
+    });
+}
+
+function recoverDeletedFiles() {
+    showResults('Recovering deleted files...');
+    
+    fetch('/api/get-deleted-content')
+    .then(response => response.json())
+    .then(data => {
+        if (data.success) {
+            showResults(data.content);
+        } else {
+            showResults('Error: ' + data.error);
+        }
+    });
+}
+
+function scanSystemNow() {
+    const modal = new bootstrap.Modal(document.getElementById('systemScanModal'));
+    modal.show();
+}
+
+function startSystemScan() {
+    const directory = document.getElementById('scanDirectory').value;
+    const fileTypes = Array.from(document.getElementById('fileTypes').selectedOptions)
+        .map(option => option.value);
+    
+    showResults(`Scanning directory: ${directory}\nLooking for: ${fileTypes.join(', ')}`);
+    
+    fetch('/api/scan-system', {
+        method: 'POST',
+        headers: {
+            'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({ 
+            directory: directory,
+            file_types: fileTypes 
+        })
+    })
+    .then(response => response.json())
+    .then(data => {
+        if (data.success) {
+            let result = `Scan completed!\n\nDirectory: ${data.directory}\n`;
+            result += `Files found: ${data.count}\n\n`;
+            
+            if (data.suspicious_files && data.suspicious_files.length > 0) {
+                result += 'Suspicious files found:\n';
+                data.suspicious_files.forEach(file => {
+                    result += `• ${file}\n`;
+                });
+            } else {
+                result += 'No suspicious files found.';
+            }
+            
+            showResults(result);
+            
+            // Close modal
+            bootstrap.Modal.getInstance(document.getElementById('systemScanModal')).hide();
+        } else {
+            showResults('Error: ' + data.error);
+        }
+    });
+}
+
+function checkMetadata() {
+    const fileInput = document.createElement('input');
+    fileInput.type = 'file';
+    fileInput.onchange = function(e) {
+        const file = e.target.files[0];
+        if (!file) return;
+        
+        showResults(`Analyzing metadata for: ${file.name}`);
+        
+        const formData = new FormData();
+        formData.append('file', file);
+        
+        fetch('/api/analyze-metadata', {
+            method: 'POST',
+            body: formData
+        })
+        .then(response => response.json())
+        .then(data => {
+            if (data.success) {
+                let result = `File: ${data.filename}\n\n`;
+                result += 'Metadata:\n';
+                for (const [key, value] of Object.entries(data.metadata)) {
+                    result += `${key}: ${value}\n`;
+                }
+                showResults(result);
+            } else {
+                showResults('Error: ' + data.error);
+            }
+        });
+    };
+    fileInput.click();
+}
+
+function exportEvidence() {
+    const timestamp = new Date().toISOString().replace(/[:.]/g, '-');
+    const filename = `evidence-export-${timestamp}.json`;
+    
+    // Collect all evidence data
+    Promise.all([
+        fetch('/api/get-alerts?limit=100').then(r => r.json()),
+        fetch('/api/get-latest-intrusions').then(r => r.json()),
+        fetch('/api/get-filesystems').then(r => r.json())
+    ])
+    .then(([alerts, intrusions, filesystems]) => {
+        const exportData = {
+            timestamp: new Date().toISOString(),
+            alerts: alerts.success ? alerts.alerts : [],
+            intrusions: intrusions.success ? intrusions.intrusions : [],
+            filesystems: filesystems.success ? filesystems.filesystems : [],
+            export_info: {
+                tool: 'SentinelEye',
+                version: '2.1',
+                export_date: new Date().toLocaleString()
+            }
+        };
+        
+        const blob = new Blob([JSON.stringify(exportData, null, 2)], { type: 'application/json' });
+        const url = window.URL.createObjectURL(blob);
+        const a = document.createElement('a');
+        a.href = url;
+        a.download = filename;
+        document.body.appendChild(a);
+        a.click();
+        document.body.removeChild(a);
+        window.URL.revokeObjectURL(url);
+        
+        showResults(`Evidence exported to: ${filename}`);
+    });
+}
+
+function showResults(content) {
+    const resultsDiv = document.getElementById('evidenceResults');
+    const contentDiv = document.getElementById('evidenceContent');
+    
+    contentDiv.textContent = content;
+    resultsDiv.classList.remove('d-none');
+}
+
+function clearResults() {
+    document.getElementById('evidenceResults').classList.add('d-none');
+    document.getElementById('evidenceContent').textContent = '';
+}
+
+function copyResults() {
+    const content = document.getElementById('evidenceContent').textContent;
+    navigator.clipboard.writeText(content)
+        .then(() => alert('Results copied to clipboard!'))
+        .catch(err => alert('Failed to copy: ' + err));
+}
+
+// Initialize on page load
+refreshFileSystems();
+</script>
+{% endblock %}

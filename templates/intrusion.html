@@ -1,0 +1,890 @@
+{% extends "base.html" %}
+
+{% block content %}
+<div class="container-fluid">
+    <div class="row mb-4">
+        <div class="col-12">
+            <h2 class="text-gradient">Intrusion Detection</h2>
+            <p class="text-muted">Real-time monitoring and analysis of security threats</p>
+        </div>
+    </div>
+
+    <!-- Real-time Status Bar -->
+    <div class="row mb-4">
+        <div class="col-12">
+            <div class="dashboard-card cyber-glow">
+                <div class="card-body py-2">
+                    <div class="d-flex justify-content-between align-items-center">
+                        <div class="d-flex align-items-center">
+                            <span class="status-indicator" id="intrusionStatus"></span>
+                            <span class="ms-2">Real-time Monitoring: </span>
+                            <span class="ms-2 fw-bold" id="connectionStatus">CONNECTED</span>
+                        </div>
+                        <div class="d-flex gap-2">
+                            <button class="btn btn-sm btn-cyber-outline" onclick="toggleAutoRefresh()" id="autoRefreshBtn">
+                                <i class="fas fa-sync-alt me-1"></i> Auto-Refresh
+                            </button>
+                            <button class="btn btn-sm btn-cyber" onclick="refreshIntrusions()">
+                                <i class="fas fa-redo me-1"></i> Refresh Now
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Attack Overview Cards -->
+    <div class="row mb-4">
+        <div class="col-xl-3 col-md-6 mb-3">
+            <div class="dashboard-card danger">
+                <div class="card-body text-center">
+                    <h3 class="card-metric" id="liveAttackCount">0</h3>
+                    <small class="text-muted">Active Attacks</small>
+                    <div class="mt-2">
+                        <small><i class="fas fa-clock me-1"></i> Last 5 min</small>
+                    </div>
+                </div>
+            </div>
+        </div>
+        
+        <div class="col-xl-3 col-md-6 mb-3">
+            <div class="dashboard-card warning">
+                <div class="card-body text-center">
+                    <h3 class="card-metric" id="uniqueIPCount">0</h3>
+                    <small class="text-muted">Unique Attackers</small>
+                    <div class="mt-2">
+                        <small><i class="fas fa-user-secret me-1"></i> Distinct IPs</small>
+                    </div>
+                </div>
+            </div>
+        </div>
+        
+        <div class="col-xl-3 col-md-6 mb-3">
+            <div class="dashboard-card info">
+                <div class="card-body text-center">
+                    <h3 class="card-metric" id="blockedIPCount">0</h3>
+                    <small class="text-muted">Blocked IPs</small>
+                    <div class="mt-2">
+                        <small><i class="fas fa-ban me-1"></i> Active Blocks</small>
+                    </div>
+                </div>
+            </div>
+        </div>
+        
+    <!-- Attack Detection Tabs -->
+    <div class="row mb-4">
+        <div class="col-12">
+            <div class="dashboard-card">
+                <div class="card-header">
+                    <ul class="nav nav-tabs card-header-tabs" id="attackTabs" role="tablist">
+                        <li class="nav-item" role="presentation">
+                            <button class="nav-link active" id="brute-force-tab" data-bs-toggle="tab" data-bs-target="#brute-force" type="button">
+                                <i class="fas fa-fire me-2"></i>Brute Force Attacks
+                            </button>
+                        </li>
+                    </ul>
+                </div>
+                
+                <div class="card-body">
+                    <div class="tab-content" id="attackTabsContent">
+                        <!-- Brute Force Attacks Tab -->
+                        <div class="tab-pane fade show active" id="brute-force" role="tabpanel">
+                            <div class="table-responsive">
+                                <table class="table table-cyber">
+                                    <thead>
+                                        <tr>
+                                            <th>Timestamp</th>
+                                            <th>IP Address</th>
+                                            <th>Attack Type</th>
+                                            <th>Attempts</th>
+                                            <th>Status</th>
+                                            <th>Actions</th>
+                                        </tr>
+                                    </thead>
+                                    <tbody id="intrusionsTable">
+                                        {% for intrusion in intrusions %}
+                                        <tr>
+                                            <td>{{ intrusion.timestamp }}</td>
+                                            <td><code class="text-danger">{{ intrusion.ip }}</code></td>
+                                            <td>{{ intrusion.attack_type }}</td>
+                                            <td><span class="badge-cyber-warning">{{ intrusion.attempts }}</span></td>
+                                            <td><span class="badge-cyber-danger">Active</span></td>
+                                            <td>
+                                                <button class="btn btn-sm btn-cyber-outline" onclick="showBlockIPModal('{{ intrusion.ip }}')">
+                                                    <i class="fas fa-ban"></i> Block
+                                                </button>
+                                            </td>
+                                        </tr>
+                                        {% endfor %}
+                                    </tbody>
+                                </table>
+                            </div>
+                        </div>
+                        
+                        <!-- DDoS Attacks Tab -->
+                        <div class="tab-pane fade" id="ddos" role="tabpanel">
+                            <div class="table-responsive">
+                                <table class="table table-cyber">
+                                    <thead>
+                                        <tr>
+                                            <th>Timestamp</th>
+                                            <th>IP Address</th>
+                                            <th>Requests</th>
+                                            <th>Duration</th>
+                                            <th>Target Port</th>
+                                            <th>Type</th>
+                                            <th>Actions</th>
+                                        </tr>
+                                    </thead>
+                                    <tbody id="ddosTable">
+                                        {% for attack in ddos_attacks %}
+                                        <tr>
+                                            <td>{{ attack.timestamp }}</td>
+                                            <td><code class="text-danger">{{ attack.ip }}</code></td>
+                                            <td>{{ attack.requests }}</td>
+                                            <td>{{ attack.duration }}s</td>
+                                            <td>{{ attack.port }}</td>
+                                            <td>{{ attack.type }}</td>
+                                            <td>
+                                                <button class="btn btn-sm btn-cyber-outline" onclick="showBlockIPModal('{{ attack.ip }}')">
+                                                    <i class="fas fa-ban"></i> Block
+                                                </button>
+                                            </td>
+                                        </tr>
+                                        {% endfor %}
+                                    </tbody>
+                                </table>
+                            </div>
+                        </div>
+                        
+                        <!-- Port Scans Tab -->
+                        <div class="tab-pane fade" id="port-scans" role="tabpanel">
+                            <div id="portScansContent">
+                                <p class="text-center py-5 text-muted">
+                                    <i class="fas fa-search fa-2x mb-3"></i><br>
+                                    Port scan detection data will appear here
+                                </p>
+                            </div>
+                        </div>
+                        
+                        <!-- Blocked IPs Tab -->
+                        <div class="tab-pane fade" id="blocked" role="tabpanel">
+                            <div class="table-responsive">
+                                <table class="table table-cyber">
+                                    <thead>
+                                        <tr>
+                                            <th>IP Address</th>
+                                            <th>Reason</th>
+                                            <th>Duration</th>
+                                            <th>Blocked At</th>
+                                            <th>Status</th>
+                                            <th>Actions</th>
+                                        </tr>
+                                    </thead>
+                                    <tbody id="blockedIPsTable">
+                                        {% for ip in blocked_ips %}
+                                        <tr>
+                                            <td><code class="text-warning">{{ ip.ip }}</code></td>
+                                            <td>{{ ip.reason }}</td>
+                                            <td>{{ ip.duration }}</td>
+                                            <td>{{ ip.blocked_at }}</td>
+                                            <td><span class="badge-cyber-info">{{ ip.status }}</span></td>
+                                            <td>
+                                                <button class="btn btn-sm btn-cyber-outline" onclick="unblockIP('{{ ip.ip }}')">
+                                                    <i class="fas fa-unlock"></i> Unblock
+                                                </button>
+                                            </td>
+                                        </tr>
+                                        {% endfor %}
+                                    </tbody>
+                                </table>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+        <div class="col-md-6">
+            <div class="dashboard-card">
+                <div class="card-header">
+                    <h5 class="card-title"><i class="fas fa-chart-bar me-2"></i>Attack Statistics</h5>
+                </div>
+                <div class="card-body">
+                    <div id="attackStats">
+                        <div class="d-flex justify-content-between mb-2">
+                            <span>Total Attacks (24h):</span>
+                            <span class="fw-bold" id="totalAttacks">{{ intrusions|length }}</span>
+                        </div>
+                        <div class="d-flex justify-content-between mb-2">
+                            <span>Unique IPs:</span>
+                            <span class="fw-bold" id="uniqueIPs">0</span>
+                        </div>
+                        <div class="d-flex justify-content-between mb-2">
+                            <span>Block Rate:</span>
+                            <span class="fw-bold" id="blockRate">0%</span>
+                        </div>
+                        <div class="d-flex justify-content-between mb-2">
+                            <span>Response Time:</span>
+                            <span class="fw-bold" id="responseTime">< 1s</span>
+                        </div>
+                        <div class="progress mt-3" style="height: 10px;">
+                            <div class="progress-bar bg-danger" id="attackTrendBar" style="width: 0%"></div>
+                        </div>
+                        <small class="text-muted mt-2 d-block" id="attackTrendText">Attack trend: Stable</small>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Block IP Modal -->
+<div class="modal fade" id="blockIPModal" tabindex="-1">
+    <div class="modal-dialog modal-cyber">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title"><i class="fas fa-ban me-2"></i>Block IP Address</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+            </div>
+            <div class="modal-body">
+                <div class="alert alert-warning">
+                    <i class="fas fa-exclamation-triangle me-2"></i>
+                    This action will block all traffic from the specified IP address.
+                </div>
+                <p>Block IP address: <code class="fs-5" id="ipToBlock"></code></p>
+                <div class="mb-3">
+                    <label class="form-label">Duration</label>
+                    <select class="form-control" id="blockDuration">
+                        <option value="1">1 hour</option>
+                        <option value="6">6 hours</option>
+                        <option value="24">24 hours</option>
+                        <option value="168">7 days</option>
+                        <option value="permanent">Permanent</option>
+                    </select>
+                </div>
+                <div class="mb-3">
+                    <label class="form-label">Reason</label>
+                    <input type="text" class="form-control" id="blockReason" placeholder="Brute force attack, DDoS, etc.">
+                </div>
+                <div class="mb-3">
+                    <div class="form-check">
+                        <input class="form-check-input" type="checkbox" id="notifyAdmin" checked>
+                        <label class="form-check-label" for="notifyAdmin">
+                            Send notification to administrator
+                        </label>
+                    </div>
+                </div>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-cyber-outline" data-bs-dismiss="modal">Cancel</button>
+                <button type="button" class="btn btn-cyber" onclick="confirmBlockIP()">
+                    <i class="fas fa-shield-alt me-1"></i> Block IP
+                </button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Real-time Alert History (Hidden by default) -->
+<div class="offcanvas offcanvas-end" tabindex="-1" id="alertHistoryCanvas">
+    <div class="offcanvas-header">
+        <h5 class="offcanvas-title"><i class="fas fa-history me-2"></i>Alert History</h5>
+        <button type="button" class="btn-close" data-bs-dismiss="offcanvas"></button>
+    </div>
+    <div class="offcanvas-body">
+        <div id="alertHistory"></div>
+        <div class="text-center mt-3">
+            <button class="btn btn-sm btn-cyber-outline" onclick="clearAlertHistory()">
+                <i class="fas fa-trash me-1"></i> Clear History
+            </button>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script src="https://cdnjs.cloudflare.com/ajax/libs/socket.io/4.6.1/socket.io.min.js"></script>
+<script>
+// Global variables
+let currentIP = '';
+let autoRefreshEnabled = true;
+let attackHistory = [];
+let alertHistory = [];
+let attackTrend = 'stable';
+let lastAttackCount = 0;
+
+// Initialize on page load
+document.addEventListener('DOMContentLoaded', function() {
+    initIntrusionPage();
+    refreshIntrusions();
+    refreshBlockedIPs();
+    refreshDDoSAttacks();
+    startAttackTrendAnalysis();
+    
+    // Initialize tabs
+    const attackTabs = document.querySelector('#attackTabs');
+    if (attackTabs) {
+        const tab = new bootstrap.Tab(attackTabs.querySelector('.nav-link.active'));
+    }
+});
+
+function initIntrusionPage() {
+    // Set up connection status indicator
+    updateConnectionStatus();
+    
+    // Check for WebSocket support
+    if (typeof io !== 'undefined') {
+        console.log('WebSocket support detected');
+        document.getElementById('connectionStatus').textContent = 'REAL-TIME';
+        document.getElementById('connectionStatus').className = 'text-success fw-bold';
+    } else {
+        console.warn('WebSocket not available, falling back to polling');
+        document.getElementById('connectionStatus').textContent = 'POLLING';
+        document.getElementById('connectionStatus').className = 'text-warning fw-bold';
+    }
+    
+    // Set up auto-refresh toggle
+    const autoRefreshBtn = document.getElementById('autoRefreshBtn');
+    if (autoRefreshBtn) {
+        autoRefreshBtn.addEventListener('click', toggleAutoRefresh);
+    }
+    
+    // Initialize alert history
+    loadAlertHistory();
+}
+
+function toggleAutoRefresh() {
+    autoRefreshEnabled = !autoRefreshEnabled;
+    const btn = document.getElementById('autoRefreshBtn');
+    if (btn) {
+        if (autoRefreshEnabled) {
+            btn.innerHTML = '<i class="fas fa-sync-alt me-1"></i> Auto-Refresh ON';
+            btn.classList.remove('btn-cyber-outline');
+            btn.classList.add('btn-cyber');
+            startAutoRefresh();
+            showNotification('Auto-refresh enabled', 'info');
+        } else {
+            btn.innerHTML = '<i class="fas fa-sync-alt me-1"></i> Auto-Refresh OFF';
+            btn.classList.remove('btn-cyber');
+            btn.classList.add('btn-cyber-outline');
+            stopAutoRefresh();
+            showNotification('Auto-refresh disabled', 'warning');
+        }
+    }
+}
+
+function startAutoRefresh() {
+    // Refresh every 5 seconds if auto-refresh is enabled
+    if (autoRefreshEnabled) {
+        setInterval(() => {
+            if (document.visibilityState === 'visible') {
+                refreshIntrusions();
+                refreshBlockedIPs();
+                refreshDDoSAttacks();
+            }
+        }, 5000);
+    }
+}
+
+function stopAutoRefresh() {
+    // Clear all intervals (simplified - in real app, track interval IDs)
+    const intervalId = window.setInterval(() => {}, 9999);
+    while (intervalId >= 0) {
+        window.clearInterval(intervalId);
+    }
+}
+
+function refreshIntrusions() {
+    const table = document.getElementById('intrusionsTable');
+    if (table) {
+        table.dataset.updating = 'true';
+    }
+    
+    fetch('/api/get-latest-intrusions')
+    .then(response => response.json())
+    .then(data => {
+        if (data.success) {
+            const table = document.getElementById('intrusionsTable');
+            if (table) {
+                table.innerHTML = '';
+                
+                // Track unique IPs and update counters
+                const uniqueIPs = new Set();
+                const now = new Date();
+                const fiveMinutesAgo = new Date(now.getTime() - (5 * 60 * 1000));
+                let recentAttacks = 0;
+                
+                data.intrusions.forEach(intrusion => {
+                    uniqueIPs.add(intrusion.ip);
+                    
+                    const attackTime = new Date(intrusion.timestamp);
+                    if (attackTime > fiveMinutesAgo) {
+                        recentAttacks++;
+                    }
+                    
+                    table.innerHTML += `
+                        <tr>
+                            <td>${new Date(intrusion.timestamp).toLocaleString()}</td>
+                            <td><code class="text-danger">${intrusion.ip}</code></td>
+                            <td>${intrusion.attack_type || 'Failed Password Attempt'}</td>
+                            <td><span class="badge-cyber-warning">${intrusion.attempts || 1}</span></td>
+                            <td><span class="badge-cyber-danger">Active</span></td>
+                            <td>
+                                <button class="btn btn-sm btn-cyber-outline" onclick="showBlockIPModal('${intrusion.ip}')">
+                                    <i class="fas fa-ban"></i> Block
+                                </button>
+                            </td>
+                        </tr>
+                    `;
+                });
+                
+                // Update live counters
+                document.getElementById('liveAttackCount').textContent = recentAttacks;
+                document.getElementById('uniqueIPCount').textContent = uniqueIPs.size;
+                document.getElementById('totalAttacks').textContent = data.intrusions.length;
+                document.getElementById('uniqueIPs').textContent = uniqueIPs.size;
+                
+                // Update attack trend
+                updateAttackTrend(data.intrusions.length);
+                
+                // Update badge count in sidebar
+                updateBadgeCount();
+            }
+            
+            // Track attack history for trend analysis
+            attackHistory.push({
+                timestamp: new Date(),
+                count: data.intrusions.length
+            });
+            
+            // Keep only last 10 entries
+            if (attackHistory.length > 10) {
+                attackHistory.shift();
+            }
+        }
+    })
+    .finally(() => {
+        if (table) {
+            table.dataset.updating = 'false';
+        }
+    });
+}
+
+function refreshDDoSAttacks() {
+    fetch('/api/get-ddos-attacks')
+    .then(response => response.json())
+    .then(data => {
+        if (data.success && data.ddos_attacks.length > 0) {
+            const table = document.getElementById('ddosTable');
+            if (table) {
+                table.innerHTML = '';
+                
+                data.ddos_attacks.forEach(attack => {
+                    table.innerHTML += `
+                        <tr>
+                            <td>${new Date(attack.timestamp).toLocaleString()}</td>
+                            <td><code class="text-danger">${attack.ip}</code></td>
+                            <td>${attack.requests}</td>
+                            <td>${attack.duration}s</td>
+                            <td>${attack.port}</td>
+                            <td>${attack.type}</td>
+                            <td>
+                                <button class="btn btn-sm btn-cyber-outline" onclick="showBlockIPModal('${attack.ip}')">
+                                    <i class="fas fa-ban"></i> Block
+                                </button>
+                            </td>
+                        </tr>
+                    `;
+                });
+                
+                // Update DDoS counter
+                document.getElementById('ddosCount').textContent = data.count;
+            }
+        }
+    });
+}
+
+function refreshBlockedIPs() {
+    fetch('/api/get-blocked-ips')
+    .then(response => response.json())
+    .then(data => {
+        if (data.success) {
+            const table = document.getElementById('blockedIPsTable');
+            if (table) {
+                table.innerHTML = '';
+                
+                data.blocked_ips.forEach(ip => {
+                    table.innerHTML += `
+                        <tr>
+                            <td><code class="text-warning">${ip.ip}</code></td>
+                            <td>${ip.reason}</td>
+                            <td>${ip.duration}</td>
+                            <td>${new Date(ip.blocked_at).toLocaleString()}</td>
+                            <td><span class="badge-cyber-info">${ip.status}</span></td>
+                            <td>
+                                <button class="btn btn-sm btn-cyber-outline" onclick="unblockIP('${ip.ip}')">
+                                    <i class="fas fa-unlock"></i> Unblock
+                                </button>
+                            </td>
+                        </tr>
+                    `;
+                });
+                
+                // Update blocked IP counter
+                document.getElementById('blockedIPCount').textContent = data.count;
+                
+                // Calculate block rate
+                const totalAttacks = parseInt(document.getElementById('totalAttacks').textContent) || 1;
+                const blockRate = Math.min(100, Math.round((data.count / totalAttacks) * 100));
+                document.getElementById('blockRate').textContent = blockRate + '%';
+            }
+        }
+    });
+}
+
+function showBlockIPModal(ip) {
+    currentIP = ip;
+    document.getElementById('ipToBlock').textContent = ip;
+    
+    // Pre-fill reason based on attack type if available
+    const attackType = detectAttackType(ip);
+    if (attackType) {
+        document.getElementById('blockReason').value = attackType;
+    }
+    
+    const modal = new bootstrap.Modal(document.getElementById('blockIPModal'));
+    modal.show();
+}
+
+function detectAttackType(ip) {
+    // Try to determine attack type from current table data
+    const table = document.getElementById('intrusionsTable');
+    if (!table) return 'Security threat';
+    
+    const rows = table.getElementsByTagName('tr');
+    for (let i = 1; i < rows.length; i++) {
+        const cells = rows[i].getElementsByTagName('td');
+        if (cells.length >= 3) {
+            const rowIP = cells[1].textContent.match(/\d+\.\d+\.\d+\.\d+/);
+            if (rowIP && rowIP[0] === ip) {
+                return cells[2].textContent || 'Security threat';
+            }
+        }
+    }
+    return 'Security threat';
+}
+
+function confirmBlockIP() {
+    const duration = document.getElementById('blockDuration').value;
+    const reason = document.getElementById('blockReason').value;
+    const notifyAdmin = document.getElementById('notifyAdmin').checked;
+    
+    // Show loading state
+    const blockBtn = document.querySelector('#blockIPModal .btn-cyber');
+    const originalText = blockBtn.innerHTML;
+    blockBtn.innerHTML = '<i class="fas fa-spinner fa-spin me-1"></i> Blocking...';
+    blockBtn.disabled = true;
+    
+    fetch('/api/block-ip', {
+        method: 'POST',
+        headers: {
+            'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+            ip: currentIP,
+            duration: duration,
+            reason: reason,
+            notify: notifyAdmin
+        })
+    })
+    .then(response => response.json())
+    .then(data => {
+        if (data.success) {
+            // Show success notification
+            showNotification(`IP ${currentIP} blocked successfully`, 'success');
+            
+            // Play success sound
+            playAlertSound('success');
+            
+            // Refresh data
+            refreshIntrusions();
+            refreshBlockedIPs();
+            
+            // Close modal
+            bootstrap.Modal.getInstance(document.getElementById('blockIPModal')).hide();
+            
+            // Add to alert history
+            addToAlertHistory({
+                type: 'IP Blocked',
+                message: `Blocked ${currentIP} for ${reason}`,
+                severity: 'warning',
+                ip: currentIP,
+                timestamp: new Date().toISOString()
+            });
+        } else {
+            showNotification(`Error: ${data.error}`, 'danger');
+            playAlertSound('error');
+        }
+    })
+    .catch(error => {
+        showNotification(`Error: ${error.message}`, 'danger');
+        playAlertSound('error');
+    })
+    .finally(() => {
+        // Restore button state
+        blockBtn.innerHTML = originalText;
+        blockBtn.disabled = false;
+    });
+}
+
+function unblockIP(ip) {
+    if (!confirm(`Are you sure you want to unblock IP ${ip}?`)) {
+        return;
+    }
+    
+    fetch('/api/unblock-ip', {
+        method: 'POST',
+        headers: {
+            'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({ ip: ip })
+    })
+    .then(response => response.json())
+    .then(data => {
+        if (data.success) {
+            showNotification(`IP ${ip} unblocked successfully`, 'success');
+            refreshBlockedIPs();
+            
+            addToAlertHistory({
+                type: 'IP Unblocked',
+                message: `Unblocked ${ip}`,
+                severity: 'info',
+                ip: ip,
+                timestamp: new Date().toISOString()
+            });
+        } else {
+            showNotification(`Error: ${data.error}`, 'danger');
+        }
+    });
+}
+
+function updateAttackTrend(currentCount) {
+    if (lastAttackCount === 0) {
+        lastAttackCount = currentCount;
+        return;
+    }
+    
+    const change = currentCount - lastAttackCount;
+    const percentageChange = lastAttackCount > 0 ? (change / lastAttackCount) * 100 : 0;
+    
+    const trendBar = document.getElementById('attackTrendBar');
+    const trendText = document.getElementById('attackTrendText');
+    
+    if (percentageChange > 20) {
+        attackTrend = 'increasing';
+        trendBar.className = 'progress-bar bg-danger';
+        trendBar.style.width = '75%';
+        trendText.textContent = `Attack trend: Increasing (+${Math.round(percentageChange)}%)`;
+        trendText.className = 'text-danger mt-2 d-block';
+    } else if (percentageChange < -20) {
+        attackTrend = 'decreasing';
+        trendBar.className = 'progress-bar bg-success';
+        trendBar.style.width = '25%';
+        trendText.textContent = `Attack trend: Decreasing (${Math.round(percentageChange)}%)`;
+        trendText.className = 'text-success mt-2 d-block';
+    } else {
+        attackTrend = 'stable';
+        trendBar.className = 'progress-bar bg-warning';
+        trendBar.style.width = '50%';
+        trendText.textContent = 'Attack trend: Stable';
+        trendText.className = 'text-warning mt-2 d-block';
+    }
+    
+    lastAttackCount = currentCount;
+}
+
+function startAttackTrendAnalysis() {
+    setInterval(() => {
+        if (attackHistory.length >= 2) {
+            const recent = attackHistory.slice(-2);
+            const change = recent[1].count - recent[0].count;
+            
+            // Update response time based on trend
+            const responseTime = document.getElementById('responseTime');
+            if (responseTime) {
+                if (change > 10) {
+                    responseTime.textContent = '< 500ms';
+                    responseTime.className = 'fw-bold text-danger';
+                } else if (change > 5) {
+                    responseTime.textContent = '< 1s';
+                    responseTime.className = 'fw-bold text-warning';
+                } else {
+                    responseTime.textContent = '< 2s';
+                    responseTime.className = 'fw-bold text-success';
+                }
+            }
+        }
+    }, 10000); // Analyze every 10 seconds
+}
+
+function scanNetwork() {
+    showNotification('Network scan started...', 'info');
+    // Implement network scanning logic here
+}
+
+function checkPorts() {
+    showNotification('Port scan started...', 'info');
+    // Implement port scanning logic here
+}
+
+function viewFirewallLogs() {
+    // Show firewall logs in a modal or new page
+    showNotification('Opening firewall logs...', 'info');
+}
+
+function runIntrusionPrevention() {
+    if (!confirm('Run automatic intrusion prevention? This may block multiple IPs.')) {
+        return;
+    }
+    
+    showNotification('Running intrusion prevention...', 'warning');
+    
+    // Simulate auto-blocking of suspicious IPs
+    setTimeout(() => {
+        showNotification('Intrusion prevention completed', 'success');
+    }, 2000);
+}
+
+function updateConnectionStatus() {
+    const statusElement = document.getElementById('intrusionStatus');
+    if (statusElement) {
+        if (navigator.onLine) {
+            statusElement.className = 'status-indicator active';
+            statusElement.title = 'Online - Real-time monitoring active';
+        } else {
+            statusElement.className = 'status-indicator inactive';
+            statusElement.title = 'Offline - Using cached data';
+        }
+    }
+}
+
+function updateBadgeCount() {
+    fetch('/api/get-latest-intrusions')
+    .then(response => response.json())
+    .then(data => {
+        if (data.success) {
+            const badge = document.getElementById('intrusionAlertCount');
+            if (badge) {
+                badge.textContent = data.intrusions.length;
+                if (data.intrusions.length > 0) {
+                    badge.classList.add('pulse');
+                } else {
+                    badge.classList.remove('pulse');
+                }
+            }
+        }
+    });
+}
+
+// Alert History Functions
+function loadAlertHistory() {
+    const savedHistory = localStorage.getItem('sentineleye_alert_history');
+    if (savedHistory) {
+        alertHistory = JSON.parse(savedHistory);
+        renderAlertHistory();
+    }
+}
+
+function saveAlertHistory() {
+    localStorage.setItem('sentineleye_alert_history', JSON.stringify(alertHistory.slice(-50)));
+}
+
+function addToAlertHistory(alert) {
+    alertHistory.push(alert);
+    if (alertHistory.length > 50) {
+        alertHistory.shift();
+    }
+    saveAlertHistory();
+    renderAlertHistory();
+}
+
+function renderAlertHistory() {
+    const container = document.getElementById('alertHistory');
+    if (!container) return;
+    
+    container.innerHTML = '';
+    
+    if (alertHistory.length === 0) {
+        container.innerHTML = '<p class="text-center text-muted py-5">No alerts recorded yet</p>';
+        return;
+    }
+    
+    alertHistory.slice().reverse().forEach(alert => {
+        const alertElement = document.createElement('div');
+        alertElement.className = `alert-item alert-${alert.severity} mb-2`;
+        alertElement.innerHTML = `
+            <div class="d-flex justify-content-between">
+                <strong>${alert.type}</strong>
+                <small class="text-muted">${new Date(alert.timestamp).toLocaleTimeString()}</small>
+            </div>
+            <div class="small">${alert.message}</div>
+            ${alert.ip ? `<div class="small mt-1">IP: <code>${alert.ip}</code></div>` : ''}
+        `;
+        container.appendChild(alertElement);
+    });
+}
+
+function clearAlertHistory() {
+    if (confirm('Clear all alert history?')) {
+        alertHistory = [];
+        saveAlertHistory();
+        renderAlertHistory();
+        showNotification('Alert history cleared', 'info');
+    }
+}
+
+// Utility functions
+function showNotification(message, type = 'info') {
+    // Use the notification function from main.js
+    if (window.SentinelEye && window.SentinelEye.showNotification) {
+        window.SentinelEye.showNotification(message, type);
+    } else {
+        alert(message);
+    }
+}
+
+function playAlertSound(type = 'alert') {
+    // Use the alert sound function from main.js
+    if (window.SentinelEye && window.SentinelEye.playAlertSound) {
+        window.SentinelEye.playAlertSound();
+    }
+}
+
+// Start auto-refresh on page load
+startAutoRefresh();
+
+// Listen for online/offline status
+window.addEventListener('online', updateConnectionStatus);
+window.addEventListener('offline', updateConnectionStatus);
+
+// Update connection status periodically
+setInterval(updateConnectionStatus, 30000);
+
+// Show alert history button in status bar
+document.addEventListener('DOMContentLoaded', function() {
+    const statusBar = document.querySelector('.status-bar');
+    if (statusBar) {
+        const historyBtn = document.createElement('button');
+        historyBtn.className = 'btn btn-sm btn-cyber-outline ms-2';
+        historyBtn.innerHTML = '<i class="fas fa-history me-1"></i> Alerts';
+        historyBtn.setAttribute('data-bs-toggle', 'offcanvas');
+        historyBtn.setAttribute('data-bs-target', '#alertHistoryCanvas');
+        statusBar.querySelector('.d-flex:last-child').appendChild(historyBtn);
+    }
+});
+</script>
+{% endblock %}
+[file content end]
